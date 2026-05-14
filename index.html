@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Video & TTS Studio - Suara & Kamera LowRes</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; margin: 0; }
+        .card { background: #1e293b; padding: 20px; border-radius: 28px; width: 100%; max-width: 550px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid #334155; }
+        h2 { text-align: center; margin: 0 0 5px; color: #0ea5e9; }
+        .sub { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 18px; }
+        .label { font-weight: 600; margin: 12px 0 6px; font-size: 13px; color: #b9e6ff; display: flex; align-items: center; gap: 8px; }
+        textarea { width: 100%; height: 90px; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 16px; padding: 12px; font-family: inherit; font-size: 14px; resize: vertical; }
+        select, input[type="range"] { width: 100%; padding: 12px; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 16px; margin: 8px 0; }
+        button { width: 100%; padding: 14px; background: #0ea5e9; border: none; border-radius: 50px; font-weight: bold; font-size: 16px; color: white; margin-top: 12px; cursor: pointer; transition: 0.2s; }
+        button:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+        .warning-box { background: #451a03; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 16px; margin: 12px 0; font-size: 12px; }
+        .warning-box h4 { margin: 0 0 4px; color: #fbbf24; }
+        .status { padding: 10px; border-radius: 16px; font-size: 12px; text-align: center; margin: 15px 0; background: #0f172a; border-left: 3px solid #0ea5e9; }
+        .success { background: #064e3b; border-left-color: #22c55e; color: #bbf7d0; }
+        .error { background: #7f1d1d; border-left-color: #ef4444; color: #fecaca; }
+        .recording { background: #991b1b; border-left-color: #ef4444; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .video-container { background: #000; border-radius: 20px; overflow: hidden; margin: 12px 0; position: relative; }
+        video { width: 100%; display: block; background: #000; max-height: 280px; object-fit: cover; }
+        .camera-controls { display: flex; gap: 10px; margin: 10px 0; }
+        .camera-controls button { margin: 0; flex: 1; background: #334155; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+        .btn-small { padding: 10px; background: #334155; border-radius: 40px; font-size: 12px; margin: 0; width: auto; flex: 1; }
+        .volume-slider { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+        .volume-slider input { flex: 1; margin: 0; }
+        .download-area { display: none; margin-top: 20px; padding: 16px; background: #064e3b; border-radius: 20px; text-align: center; }
+        .dl-btn { display: inline-block; padding: 12px 24px; background: #22c55e; color: white; text-decoration: none; border-radius: 40px; font-weight: bold; margin-top: 8px; }
+        audio, video.output-preview { width: 100%; border-radius: 14px; margin-top: 8px; }
+        hr { margin: 16px 0; border-color: #334155; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🎥 Video + TTS Studio</h2>
+    <div class="sub">Kamera Low Res + Suara dari Teks (Rekam Internal)</div>
+
+    <!-- ========= BAGIAN TTS & REKAM SUARA ========= -->
+    <div class="label">📝 1. Teks untuk diubah jadi Suara (TTS)</div>
+    <textarea id="ttsText" placeholder="Ketik teks disini... Contoh: Halo, ini adalah video dari kamera resolusi rendah dengan suara dari text to speech"></textarea>
+    
+    <div class="row">
+        <select id="voiceSelect">
+            <option value="wanita">👩 Suara Wanita (Natural)</option>
+            <option value="pria">👨 Suara Pria (Natural)</option>
+            <option value="cadel">🧒 Suara Cadel/Anak</option>
+        </select>
+    </div>
+    
+    <div class="volume-slider">
+        <span>🔊 Volume Speaker:</span>
+        <input type="range" id="ttsVolume" min="0" max="100" value="85">
+        <span id="volVal">85%</span>
+    </div>
+
+    <button id="generateAndRecordBtn">🎤 Generate Suara & Rekam (Jadi MP3/WAV)</button>
+    
+    <div id="ttsStatus" class="status info">⚡ Siap. Pastikan volume speaker keras (min 70%) dan izinkan microphone.</div>
+
+    <div id="audioResultArea" style="display: none; margin-top: 12px; background: #0f172a; border-radius: 16px; padding: 12px;">
+        <p style="margin:0 0 5px">🔊 Hasil Rekaman Suara:</p>
+        <audio id="recordedAudio" controls></audio>
+        <a id="downloadAudioBtn" class="dl-btn" style="margin-top: 8px; display: inline-block;">💾 Download MP3</a>
+    </div>
+
+    <hr>
+
+    <!-- ========= BAGIAN KAMERA RESOLUSI RENDAH ========= -->
+    <div class="label">📸 2. Kamera (Resolusi Rendah / Hemat)</div>
+    <div class="video-container">
+        <video id="cameraPreview" autoplay playsinline muted style="transform: scaleX(-1);"></video>
+    </div>
+    <div class="camera-controls">
+        <button id="startCameraBtn">📷 Mulai Kamera (LowRes)</button>
+        <button id="stopCameraBtn" disabled>⏹️ Matikan Kamera</button>
+    </div>
+    <div class="flex" style="justify-content: space-between;">
+        <span style="font-size:12px">🔘 Resolusi: 360p (HVGA)</span>
+        <button id="captureFrameBtn" class="btn-small" style="background:#0ea5e9;">🖼️ Ambil Foto (JPEG)</button>
+    </div>
+    <div id="photoResult" style="display: none; margin-top: 12px;">
+        <p style="font-size:12px">📸 Foto terakhir:</p>
+        <img id="capturedImage" width="100%" style="border-radius: 16px; border:1px solid #334155;">
+        <a id="downloadPhotoBtn" class="dl-btn" style="margin-top: 6px;">⬇️ Simpan Foto</a>
+    </div>
+
+    <hr>
+
+    <!-- ========= BAGIAN GABUNG VIDEO (DARI KAMERA + SUARA TTS) ========= -->
+    <div class="label">🎬 3. Rekam Video (Kamera LowRes + Suara TTS)</div>
+    <button id="startVideoRecordBtn">🎥 Mulai Rekam Video (dengan suara)</button>
+    <button id="stopVideoRecordBtn" disabled>⏹️ Hentikan & Simpan Video</button>
+    
+    <div id="videoRecordStatus" class="status info">📱 Rekam video dari kamera + suara latar TTS (suara akan menyatu).</div>
+
+    <div id="videoOutputArea" style="display: none; margin-top: 20px;">
+        <p>✅ Video selesai:</p>
+        <video id="outputVideo" controls playsinline style="max-height: 280px;"></video>
+        <a id="downloadVideoLink" class="dl-btn">⬇️ Download Video (WebM)</a>
+    </div>
+
+    <hr>
+    <small>💡 Cara pakai: 1) Tulis teks -> Generate suara. 2) Aktifkan kamera. 3) Rekam video dengan suara yang sudah di-generate. Hasil video + suara menyatu.</small>
+</div>
+
+<script>
+    (function() {
+        // ========== ELEMEN ==========
+        const ttsText = document.getElementById('ttsText');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const ttsVolume = document.getElementById('ttsVolume');
+        const volVal = document.getElementById('volVal');
+        const generateBtn = document.getElementById('generateAndRecordBtn');
+        const ttsStatusDiv = document.getElementById('ttsStatus');
+        const audioResultArea = document.getElementById('audioResultArea');
+        const recordedAudio = document.getElementById('recordedAudio');
+        const downloadAudioBtn = document.getElementById('downloadAudioBtn');
+        
+        // Kamera
+        const cameraPreview = document.getElementById('cameraPreview');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const captureFrameBtn = document.getElementById('captureFrameBtn');
+        const photoResult = document.getElementById('photoResult');
+        const capturedImage = document.getElementById('capturedImage');
+        const downloadPhotoBtn = document.getElementById('downloadPhotoBtn');
+        
+        // Video record
+        const startVideoRecord = document.getElementById('startVideoRecordBtn');
+        const stopVideoRecord = document.getElementById('stopVideoRecordBtn');
+        const videoRecordStatus = document.getElementById('videoRecordStatus');
+        const videoOutputArea = document.getElementById('videoOutputArea');
+        const outputVideo = document.getElementById('outputVideo');
+        const downloadVideoLink = document.getElementById('downloadVideoLink');
+        
+        // State
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let currentAudioBlob = null;      // blob hasil rekaman TTS
+        let currentAudioUrl = null;
+        let cameraStream = null;
+        let isCameraActive = false;
+        let videoMediaRecorder = null;
+        let videoChunks = [];
+        let finalVideoStream = null;       // untuk rekam video + audio
+        
+        // volume display
+        ttsVolume.addEventListener('input', () => { volVal.innerText = ttsVolume.value + '%'; });
+        
+        // ========== 1. FITUR TTS + REKAM SUARA (INTERNAL) ==========
+        let speechUtterance = null;
+        let speechSynth = window.speechSynthesis;
+        
+        function stopAnySpeech() {
+            if (speechSynth.speaking) speechSynth.cancel();
+        }
+        
+        async function recordTTSAudio() {
+            const text = ttsText.value.trim();
+            if (!text) { alert("Tulis teks terlebih dahulu!"); return null; }
+            const volumeLevel = parseInt(ttsVolume.value);
+            if (volumeLevel < 50) {
+                if (!confirm(`Volume speaker hanya ${volumeLevel}%. Rekaman mungkin kurang jelas, lanjutkan?`)) return null;
+            }
+            
+            // Request mic
+            let micStream = null;
+            try {
+                ttsStatusDiv.innerHTML = "🎤 Minta akses microphone... Ijinkan!";
+                ttsStatusDiv.className = "status info";
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+            } catch(err) {
+                ttsStatusDiv.innerHTML = "❌ Izin microphone ditolak. Tidak bisa merekam suara TTS.";
+                ttsStatusDiv.className = "status error";
+                return null;
+            }
+            
+            return new Promise((resolve) => {
+                let mediaRecMic = new MediaRecorder(micStream);
+                let micChunks = [];
+                let recordingStarted = false;
+                
+                // siapkan TTS
+                stopAnySpeech();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'id-ID';
+                if (voiceSelect.value === "wanita") { utterance.pitch = 1.1; utterance.rate = 0.95; }
+                else if (voiceSelect.value === "pria") { utterance.pitch = 0.7; utterance.rate = 0.9; }
+                else { utterance.pitch = 1.3; utterance.rate = 0.85; }
+                
+                // cari voice Indonesia
+                const voices = speechSynth.getVoices();
+                let selectedVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID'));
+                if (selectedVoice) utterance.voice = selectedVoice;
+                
+                mediaRecMic.ondataavailable = (e) => { if(e.data.size > 0) micChunks.push(e.data); };
+                mediaRecMic.onstop = () => {
+                    const blob = new Blob(micChunks, { type: 'audio/wav' });
+                    const url = URL.createObjectURL(blob);
+                    if (micStream) micStream.getTracks().forEach(t => t.stop());
+                    resolve({ blob, url });
+                };
+                
+                utterance.onstart = () => {
+                    if (!recordingStarted && mediaRecMic.state === 'inactive') {
+                        mediaRecMic.start(100);
+                        recordingStarted = true;
+                        ttsStatusDiv.innerHTML = "🔴 MEREKAM suara TTS... Jangan matikan speaker!";
+                        ttsStatusDiv.className = "status recording";
+                    }
+                };
+                utterance.onend = () => {
+                    setTimeout(() => {
+                        if (mediaRecMic && mediaRecMic.state === 'recording') mediaRecMic.stop();
+                        ttsStatusDiv.innerHTML = "✅ Rekaman suara selesai!";
+                        ttsStatusDiv.className = "status success";
+                    }, 300);
+                };
+                utterance.onerror = (e) => {
+                    console.error(e);
+                    if(mediaRecMic && mediaRecMic.state === 'recording') mediaRecMic.stop();
+                    ttsStatusDiv.innerHTML = "❌ Gagal memutar TTS. Coba lagi.";
+                    ttsStatusDiv.className = "status error";
+                    micStream.getTracks().forEach(t => t.stop());
+                    resolve(null);
+                };
+                
+                // safety timeout
+                setTimeout(() => {
+                    if(mediaRecMic && mediaRecMic.state === 'recording') {
+                        mediaRecMic.stop();
+                        ttsStatusDiv.innerHTML = "⏱️ Timeout rekaman";
+                        micStream.getTracks().forEach(t => t.stop());
+                        resolve(null);
+                    }
+                }, 35000);
+                
+                speechSynth.speak(utterance);
+            });
+        }
+        
+        generateBtn.onclick = async () => {
+            generateBtn.disabled = true;
+            const result = await recordTTSAudio();
+            if (result && result.blob) {
+                currentAudioBlob = result.blob;
+                currentAudioUrl = result.url;
+                recordedAudio.src = currentAudioUrl;
+                downloadAudioBtn.href = currentAudioUrl;
+                downloadAudioBtn.download = `tts_hasil_${Date.now()}.wav`;
+                audioResultArea.style.display = "block";
+                ttsStatusDiv.innerHTML = "✅ Suara TTS berhasil direkam! Kini kamu bisa rekam video dengan suara ini.";
+                ttsStatusDiv.className = "status success";
+            } else {
+                if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+                ttsStatusDiv.innerHTML = "❌ Gagal merekam suara. Pastikan izin mic dan volume speaker keras.";
+                ttsStatusDiv.className = "status error";
+            }
+            generateBtn.disabled = false;
+        };
+        
+        // ========== 2. KAMERA RESOLUSI RENDAH (360p atau sekecil mungkin) ==========
+        async function startLowResCamera() {
+            if (cameraStream) {
+                stopCameraStream();
+            }
+            try {
+                // Minta resolusi rendah: 360x640 atau idealnya 480x360 sesuai lebar
+                const constraints = {
+                    video: {
+                        width: { exact: 360, ideal: 360 },
+                        height: { exact: 480, ideal: 480 },
+                        facingMode: "environment" // belakang
+                    }
+                };
+                // Fallback jika exact tidak support
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch(e) {
+                    // fallback ke resolusi rendah tanpa exact
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "environment" }
+                    });
+                }
+                cameraStream = stream;
+                cameraPreview.srcObject = cameraStream;
+                isCameraActive = true;
+                startCameraBtn.disabled = true;
+                stopCameraBtn.disabled = false;
+                captureFrameBtn.disabled = false;
+                videoRecordStatus.innerHTML = "📷 Kamera aktif (resolusi rendah). Sekarang bisa rekam video.";
+                videoRecordStatus.className = "status success";
+            } catch(err) {
+                console.error(err);
+                videoRecordStatus.innerHTML = "❌ Gagal akses kamera: " + err.message;
+                videoRecordStatus.className = "status error";
+                isCameraActive = false;
+            }
+        }
+        
+        function stopCameraStream() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            cameraPreview.srcObject = null;
+            isCameraActive = false;
+            startCameraBtn.disabled = false;
+            stopCameraBtn.disabled = true;
+            captureFrameBtn.disabled = true;
+            videoRecordStatus.innerHTML = "Kamera dimatikan. Aktifkan kembali jika perlu.";
+            videoRecordStatus.className = "status info";
+        }
+        
+        startCameraBtn.onclick = () => startLowResCamera();
+        stopCameraBtn.onclick = () => stopCameraStream();
+        
+        // Ambil foto dari kamera resolusi rendah
+        captureFrameBtn.onclick = () => {
+            if (!cameraStream || !isCameraActive) {
+                alert("Aktifkan kamera terlebih dahulu!");
+                return;
+            }
+            const videoTrack = cameraStream.getVideoTracks()[0];
+            const settings = videoTrack.getSettings();
+            const width = settings.width || 320;
+            const height = settings.height || 240;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            // Karena preview mirror, kita perlu flip agar foto tidak terbalik
+            ctx.translate(width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(cameraPreview, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            capturedImage.src = dataUrl;
+            downloadPhotoBtn.href = dataUrl;
+            downloadPhotoBtn.download = `foto_${Date.now()}.jpg`;
+            photoResult.style.display = "block";
+        };
+        
+        // ========== 3. REKAM VIDEO (KAMERA + SUARA TTS YANG SUDAH DI-GENERATE) ==========
+        let recordingVideoActive = false;
+        let combinedRecorder = null;
+        let recordedVideoBlob = null;
+        
+        async function startVideoRecording() {
+            if (!isCameraActive || !cameraStream) {
+                alert("Nyalakan kamera terlebih dahulu (Mulai Kamera LowRes)!");
+                return;
+            }
+            if (!currentAudioBlob) {
+                alert("Hasilkan suara TTS dulu (klik 'Generate Suara & Rekam') agar video memiliki audio!");
+                return;
+            }
+            
+            // Siapkan audio dari blob yang sudah direkam sebelumnya
+            let audioElemForPlayback = null;
+            let audioContext = null;
+            let audioDestinationStream = null;
+            
+            try {
+                // Buat audio context dari blob yang sudah ada
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const arrayBuffer = await currentAudioBlob.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Sumber audio untuk dimainkan selama rekaman
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.loop = false;
+                
+                // Buat stream destination untuk menggabungkan ke recorder
+                const dest = audioContext.createMediaStreamDestination();
+                source.connect(dest);
+                source.connect(audioContext.destination); // agar terdengar preview
+                
+                audioDestinationStream = dest.stream;
+                
+                // Video stream dari kamera (tanpa mirror agar normal, kita gunakan stream asli)
+                // kamera asli stream (jika kita pakai cameraStream asli, tidak perlu mirror)
+                const videoTrack = cameraStream.getVideoTracks()[0];
+                const originalVideoStream = new MediaStream([videoTrack]);
+                
+                // Gabungkan video + audio (dari TTS)
+                const combinedStream = new MediaStream();
+                originalVideoStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+                if (audioDestinationStream) {
+                    audioDestinationStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+                }
+                
+                finalVideoStream = combinedStream;
+                videoChunks = [];
+                combinedRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' });
+                combinedRecorder.ondataavailable = (e) => { if(e.data.size > 0) videoChunks.push(e.data); };
+                combinedRecorder.onstop = () => {
+                    const fullBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    recordedVideoBlob = fullBlob;
+                    const videoUrl = URL.createObjectURL(fullBlob);
+                    outputVideo.src = videoUrl;
+                    downloadVideoLink.href = videoUrl;
+                    downloadVideoLink.download = `video_kamera_tts_${Date.now()}.webm`;
+                    videoOutputArea.style.display = "block";
+                    videoRecordStatus.innerHTML = "✅ Video selesai! Download hasilnya.";
+                    videoRecordStatus.className = "status success";
+                    recordingVideoActive = false;
+                    startVideoRecord.disabled = false;
+                    stopVideoRecord.disabled = true;
+                    
+                    // Hentikan audio context
+                    if (audioContext) audioContext.close();
+                    if (audioElemForPlayback) audioElemForPlayback.pause();
+                };
+                
+                combinedRecorder.start(100);
+                recordingVideoActive = true;
+                startVideoRecord.disabled = true;
+                stopVideoRecord.disabled = false;
+                videoRecordStatus.innerHTML = "🔴 MEREKAM VIDEO + SUARA TTS... Klik Stop untuk selesai.";
+                videoRecordStatus.className = "status recording";
+                
+                // Putar audio TTS melalui context selama rekaman
+                await audioContext.resume();
+                source.start(0);
+                
+                // Set timer maksimal 2 menit
+                setTimeout(() => {
+                    if (recordingVideoActive && combinedRecorder && combinedRecorder.state === 'recording') {
+                        stopVideoRecordingManually();
+                    }
+                }, 120000);
+                
+            } catch(err) {
+                console.error(err);
+                videoRecordStatus.innerHTML = "❌ Gagal memulai rekaman video: " + err.message;
+                videoRecordStatus.className = "status error";
+                if (audioContext) audioContext.close();
+                startVideoRecord.disabled = false;
+                stopVideoRecord.disabled = true;
+            }
+        }
+        
+        function stopVideoRecordingManually() {
+            if (combinedRecorder && combinedRecorder.state === 'recording') {
+                combinedRecorder.stop();
+                recordingVideoActive = false;
+                startVideoRecord.disabled = false;
+                stopVideoRecord.disabled = true;
+                videoRecordStatus.innerHTML = "⏹️ Menghentikan rekaman... memproses video.";
+                videoRecordStatus.className = "status info";
+            } else {
+                stopVideoRecord.disabled = true;
+            }
+        }
+        
+        startVideoRecord.onclick = () => startVideoRecording();
+        stopVideoRecord.onclick = () => stopVideoRecordingManually();
+        
+        // Bersihkan resources jika halaman ditutup
+        window.addEventListener('beforeunload', () => {
+            if (cameraStream) stopCameraStream();
+            if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+            speechSynth.cancel();
+        });
+        
+        // inisialisasi voice list (opsional)
+        function updateVoiceList() {
+            const voices = speechSynth.getVoices();
+            if (voices.length > 0) return;
+            speechSynth.onvoiceschanged = () => {};
+        }
+        updateVoiceList();
+        
+        // small helper
+        function ensureCameraOffOnReload() {}
+    })();
+</script>
+</body>
+</html>
