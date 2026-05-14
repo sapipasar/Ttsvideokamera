@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Video Editor Pro - Kamera & Timeline</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: #0a0f1e;
+            color: white;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+        }
+        .container {
+            background: #1a1f2e;
+            padding: 20px;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 {
+            text-align: center;
+            color: #00e5ff;
+            margin: 0 0 5px;
+        }
+        .sub {
+            text-align: center;
+            font-size: 12px;
+            color: #88aaff;
+            margin-bottom: 20px;
+        }
+        .label {
+            font-weight: 600;
+            margin: 12px 0 5px;
+            font-size: 14px;
+            color: #b9e6ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="file"] {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            background: #10131f;
+            border: 1px solid #333;
+            color: white;
+        }
+        input[type="file"]::file-selector-button {
+            background: #00e5ff;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-weight: bold;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        textarea {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            background: #10131f;
+            border: 1px solid #333;
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #00e5ff;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #000;
+            margin-top: 18px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .status {
+            background: #0e1120;
+            border-radius: 20px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            margin: 15px 0;
+            border-left: 3px solid #00e5ff;
+        }
+        video {
+            width: 100%;
+            border-radius: 16px;
+            margin-top: 10px;
+            background: #000;
+        }
+        .download-btn {
+            display: inline-block;
+            width: 100%;
+            background: #22c55e;
+            text-align: center;
+            padding: 12px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .row button {
+            margin: 0;
+            flex: 1;
+            background: #252c40;
+            color: white;
+        }
+        .row button.active {
+            background: #00e5ff;
+            color: #000;
+        }
+        .color-option {
+            width: 48px;
+            height: 48px;
+            border-radius: 48px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-option.active {
+            border-color: white;
+            transform: scale(1.05);
+            box-shadow: 0 0 0 2px #00e5ff;
+        }
+        .color-palette {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .output-area {
+            display: none;
+            margin-top: 20px;
+        }
+        canvas {
+            display: none;
+        }
+        .file-info {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .timeline-section {
+            background: #0e1120;
+            border-radius: 20px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .track-label {
+            font-size: 11px;
+            color: #00e5ff;
+            margin: 12px 0 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .timeline-bar {
+            background: #2a2f40;
+            height: 44px;
+            border-radius: 12px;
+            position: relative;
+        }
+        .video-clip-bar {
+            background: #1a4f4f;
+            height: 44px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .video-progress {
+            position: absolute;
+            left: 0%;
+            width: 3px;
+            height: 44px;
+            background: #ffaa33;
+            top: 0;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .preview-player {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .preview-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 12px;
+            background: #0e1120;
+            flex-wrap: wrap;
+        }
+        .preview-controls button {
+            width: auto;
+            padding: 6px 14px;
+            margin: 0;
+            background: #00e5ff;
+            font-size: 13px;
+        }
+        .time-display {
+            font-size: 11px;
+            font-family: monospace;
+            margin-left: auto;
+        }
+        .volume-slider {
+            width: 80px;
+        }
+        .camera-box {
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .camera-controls button {
+            margin: 0;
+            flex: 1;
+            background: #334155;
+        }
+        .timer {
+            font-size: 14px;
+            font-weight: bold;
+            background: #000000aa;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 30px;
+            margin-left: 10px;
+        }
+        hr { margin: 16px 0; border-color: #2a2f40; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎬 Video Editor Pro</h2>
+    <div class="sub">Pilih Video + Suara + Teks • Kamera LowRes (tidak terbalik)</div>
+
+    <!-- 1. Pilih Video (max 60 detik) -->
+    <div class="label">📂 1. Pilih Video (Max 60 detik)</div>
+    <input type="file" id="videoInput" accept="video/*">
+    <div class="file-info" id="videoInfo">* Video asli akan dimute, diganti suara dari file</div>
+
+    <!-- PREVIEW VIDEO (dimute) -->
+    <div class="preview-player" id="previewPlayer" style="display: none;">
+        <video id="previewVideo" playsinline style="margin:0; border-radius:16px 16px 0 0; width:100%;"></video>
+        <div class="preview-controls">
+            <button id="previewPlayBtn" class="btn-small">▶ Play</button>
+            <button id="previewAudioTestBtn" class="btn-small">🎵 Test Audio File</button>
+            <input type="range" id="previewVolume" class="volume-slider" min="0" max="100" value="80">
+            <span class="time-display" id="previewTime">00:00 / 00:00</span>
+        </div>
+    </div>
+
+    <!-- 2. Tambah Suara dari File Manager -->
+    <div class="label">🎵 2. Tambah Suara/Lagu (dari file)</div>
+    <input type="file" id="audioInput" accept="audio/*">
+    <div class="file-info" id="audioInfo">* Pilih file MP3, WAV, dll. Suara akan menggantikan video asli</div>
+
+    <!-- Timeline Sederhana untuk Audio & Teks -->
+    <div class="timeline-section">
+        <div class="timeline-header">
+            <span>🎚️ ATUR TIMELINE (Mulai & Akhir)</span>
+            <span>Geser atau input angka</span>
+        </div>
+        <div class="track-label">
+            <span>🎬 VIDEO (progress)</span>
+            <span id="videoDurLabel">0 detik</span>
+        </div>
+        <div class="timeline-bar video-clip-bar" id="videoTimelineBar">
+            <div id="videoProgress" class="video-progress"></div>
+        </div>
+        <div class="track-label">
+            <span>🎵 AUDIO (potongan)</span>
+            <span id="audioTrackStatus">Belum ada audio</span>
+        </div>
+        <div class="timeline-controls" style="display: flex; gap: 8px; margin: 8px 0;">
+            <input type="number" id="audioStartTime" step="0.5" value="0" placeholder="Mulai">
+            <input type="number" id="audioEndTime" step="0.5" value="5.0" placeholder="Akhir">
+            <button id="applyAudioBtn" style="width: auto; padding: 6px 12px; margin:0;">Terapkan</button>
+        </div>
+        <div class="track-label">
+            <span>📝 TEKS (durasi tampil)</span>
+            <span id="textTrackStatus">Kosong</span>
+        </div>
+        <div class="timeline-controls" style="display: flex; gap: 8px; margin: 8px 0;">
+            <input type="number" id="textStartTime" step="0.5" value="0.5" placeholder="Mulai Teks">
+            <input type="number" id="textEndTime" step="0.5" value="5.0" placeholder="Akhir Teks">
+            <button id="applyTextBtn" style="width: auto; padding: 6px 12px; margin:0;">Terapkan</button>
+        </div>
+    </div>
+
+    <!-- Teks Overlay -->
+    <div class="label">✏️ 3. Teks di Layar</div>
+    <textarea id="overlayText" rows="2" placeholder="Tulis teks di sini..."></textarea>
+
+    <div class="row">
+        <button id="posTop" class="active">Atas</button>
+        <button id="posMid">Tengah</button>
+        <button id="posBottom">Bawah</button>
+    </div>
+
+    <!-- Warna Teks: Putih, Merah, Biru -->
+    <div class="label">🎨 Warna Teks</div>
+    <div class="color-palette">
+        <div class="color-option" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
+        <div class="color-option" style="background: #FF3333;" data-color="#FF3333"></div>
+        <div class="color-option" style="background: #3399FF;" data-color="#3399FF"></div>
+    </div>
+
+    <div class="row">
+        <span style="flex:1">🔤 Ukuran Teks:</span>
+        <input type="range" id="textSize" min="24" max="80" value="42" style="flex:2">
+        <span id="sizeVal">42px</span>
+    </div>
+
+    <hr>
+
+    <!-- FITUR KAMERA (Resolusi Rendah, tidak terbalik) -->
+    <div class="label">📸 Kamera LowRes (Rekam Video Baru)</div>
+    <div class="camera-box">
+        <video id="cameraPreview" autoplay playsinline muted style="width:100%; background:#000; transform: scaleX(1);"></video>
+    </div>
+    <div class="camera-controls">
+        <button id="startCameraBtn">📷 Mulai Kamera (360p)</button>
+        <button id="stopCameraBtn" disabled>⏹️ Matikan</button>
+        <button id="recordCameraBtn" disabled>🔴 Rekam Video (5 detik)</button>
+    </div>
+    <div id="cameraRecordStatus" class="status info">Kamera siap. Rekam video pendek max 5 detik.</div>
+    <div id="cameraOutputArea" style="display: none; margin-top: 12px;">
+        <video id="cameraRecordedVideo" controls style="max-height: 200px;"></video>
+        <a id="downloadCameraVideo" class="download-btn" style="background:#22c55e;">💾 Simpan Video Kamera</a>
+    </div>
+
+    <hr>
+
+    <!-- PRODUKSI VIDEO (Gabung Video Pilih + Suara File + Teks) -->
+    <button id="processBtn">✨ PRODUKSI VIDEO (Gabung Teks + Suara File + Video) ✨</button>
+    <div id="infoStatus" class="status">📱 Pilih video (max 60 detik), pilih suara, atur teks, lalu produksi.</div>
+
+    <div id="outputArea" class="output-area">
+        <video id="outputVideo" controls playsinline></video>
+        <a id="downloadLink" class="download-btn">💾 SIMPAN KE GALERI</a>
+    </div>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+    (function() {
+        // ========== ELEMEN ==========
+        const videoInput = document.getElementById('videoInput');
+        const audioInput = document.getElementById('audioInput');
+        const previewVideo = document.getElementById('previewVideo');
+        const previewPlayer = document.getElementById('previewPlayer');
+        const previewPlayBtn = document.getElementById('previewPlayBtn');
+        const previewAudioTestBtn = document.getElementById('previewAudioTestBtn');
+        const previewVolume = document.getElementById('previewVolume');
+        const previewTime = document.getElementById('previewTime');
+        const overlayText = document.getElementById('overlayText');
+        const processBtn = document.getElementById('processBtn');
+        const infoStatus = document.getElementById('infoStatus');
+        const outputVideo = document.getElementById('outputVideo');
+        const downloadLink = document.getElementById('downloadLink');
+        const outputArea = document.getElementById('outputArea');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const videoInfo = document.getElementById('videoInfo');
+        const audioInfo = document.getElementById('audioInfo');
+        const videoDurLabel = document.getElementById('videoDurLabel');
+        const videoProgress = document.getElementById('videoProgress');
+        
+        // timeline elements
+        const audioStartTime = document.getElementById('audioStartTime');
+        const audioEndTime = document.getElementById('audioEndTime');
+        const textStartTime = document.getElementById('textStartTime');
+        const textEndTime = document.getElementById('textEndTime');
+        const audioTrackStatus = document.getElementById('audioTrackStatus');
+        const textTrackStatus = document.getElementById('textTrackStatus');
+        const applyAudioBtn = document.getElementById('applyAudioBtn');
+        const applyTextBtn = document.getElementById('applyTextBtn');
+        
+        // text style
+        const posTop = document.getElementById('posTop');
+        const posMid = document.getElementById('posMid');
+        const posBottom = document.getElementById('posBottom');
+        const textSizeSlider = document.getElementById('textSize');
+        const sizeVal = document.getElementById('sizeVal');
+        let textColor = '#FFFFFF';
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                colorOptions.forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                textColor = opt.dataset.color;
+            });
+        });
+        document.querySelector('.color-option[data-color="#FFFFFF"]').classList.add('active');
+        
+        // state video & audio
+        let selectedVideoFile = null;
+        let selectedAudioFile = null;
+        let videoDuration = 0;
+        let audioDuration = 0;
+        let textPosition = 'top';
+        let fontSize = 42;
+        let audioTrimStart = 0;
+        let audioTrimEnd = 5.0;
+        let textTrimStart = 0.5;
+        let textTrimEnd = 5.0;
+        
+        textSizeSlider.oninput = (e) => { fontSize = parseInt(e.target.value); sizeVal.innerText = fontSize+'px'; };
+        posTop.onclick = () => { [posTop,posMid,posBottom].forEach(b=>b.classList.remove('active')); posTop.classList.add('active'); textPosition='top'; };
+        posMid.onclick = () => { [posTop,posMid,posBottom].forEach(b=>b.classList.remove('active')); posMid.classList.add('active'); textPosition='middle'; };
+        posBottom.onclick = () => { [posTop,posMid,posBottom].forEach(b=>b.classList.remove('active')); posBottom.classList.add('active'); textPosition='bottom'; };
+        
+        function updateUITimeline() {
+            if(selectedAudioFile && audioDuration>0){
+                audioTrackStatus.innerHTML = `🎵 ${audioTrimStart.toFixed(1)}s - ${audioTrimEnd.toFixed(1)}s`;
+            } else { audioTrackStatus.innerHTML = 'Belum ada audio'; }
+            const hasText = overlayText.value.trim().length>0;
+            if(hasText && videoDuration>0){
+                textTrackStatus.innerHTML = `📝 ${textTrimStart.toFixed(1)}s - ${textTrimEnd.toFixed(1)}s`;
+            } else { textTrackStatus.innerHTML = 'Kosong'; }
+        }
+        
+        applyAudioBtn.onclick = () => {
+            let start = parseFloat(audioStartTime.value);
+            let end = parseFloat(audioEndTime.value);
+            if(isNaN(start)) start=0;
+            if(isNaN(end)) end = Math.min(videoDuration, audioDuration);
+            audioTrimStart = Math.max(0, Math.min(videoDuration-0.2, start));
+            audioTrimEnd = Math.min(videoDuration, Math.max(audioTrimStart+0.3, end));
+            audioStartTime.value = audioTrimStart.toFixed(1);
+            audioEndTime.value = audioTrimEnd.toFixed(1);
+            updateUITimeline();
+        };
+        applyTextBtn.onclick = () => {
+            let start = parseFloat(textStartTime.value);
+            let end = parseFloat(textEndTime.value);
+            if(isNaN(start)) start=0.5;
+            if(isNaN(end)) end = Math.min(videoDuration,5);
+            textTrimStart = Math.max(0, Math.min(videoDuration-0.2, start));
+            textTrimEnd = Math.min(videoDuration, Math.max(textTrimStart+0.3, end));
+            textStartTime.value = textTrimStart.toFixed(1);
+            textEndTime.value = textTrimEnd.toFixed(1);
+            updateUITimeline();
+        };
+        overlayText.addEventListener('input', updateUITimeline);
+        
+        // ========== VIDEO INPUT (max 60 detik) ==========
+        videoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            const tempVideo = document.createElement('video');
+            tempVideo.src = url;
+            tempVideo.onloadedmetadata = () => {
+                let dur = tempVideo.duration;
+                if(dur > 60) {
+                    alert(`Video terlalu panjang (${dur.toFixed(1)} detik) maks 60 detik`);
+                    videoInput.value = '';
+                    selectedVideoFile = null;
+                    previewPlayer.style.display = 'none';
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                selectedVideoFile = file;
+                videoDuration = dur;
+                videoDurLabel.innerText = dur.toFixed(1)+' detik';
+                audioTrimEnd = Math.min(dur, audioDuration || dur);
+                textTrimEnd = Math.min(dur, textTrimEnd);
+                audioStartTime.value = audioTrimStart;
+                audioEndTime.value = audioTrimEnd;
+                textStartTime.value = textTrimStart;
+                textEndTime.value = textTrimEnd;
+                previewVideo.src = url;
+                previewVideo.muted = true;
+                previewPlayer.style.display = 'block';
+                previewVideo.load();
+                previewVideo.ontimeupdate = () => {
+                    let percent = (previewVideo.currentTime / videoDuration)*100;
+                    videoProgress.style.left = percent+'%';
+                    let minutes = Math.floor(previewVideo.currentTime/60);
+                    let secs = Math.floor(previewVideo.currentTime%60);
+                    let tMin = Math.floor(videoDuration/60);
+                    let tSec = Math.floor(videoDuration%60);
+                    previewTime.innerText = `${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')} / ${tMin.toString().padStart(2,'0')}:${tSec.toString().padStart(2,'0')}`;
+                };
+                previewVideo.onended = () => { previewPlayBtn.textContent = '▶ Play'; };
+                videoInfo.innerHTML = `✅ Video: ${file.name} (${dur.toFixed(1)} detik) - Suara asli akan dimute`;
+                updateUITimeline();
+                URL.revokeObjectURL(url);
+            };
+        });
+        
+        previewPlayBtn.onclick = () => {
+            if(!previewVideo.src) { alert("Pilih video"); return; }
+            if(previewVideo.paused) { previewVideo.play(); previewPlayBtn.textContent = '⏸ Pause'; } 
+            else { previewVideo.pause(); previewPlayBtn.textContent = '▶ Play'; }
+        };
+        previewVolume.oninput = (e) => { if(previewVideo) previewVideo.volume = e.target.value/100; };
+        
+        // ========== AUDIO FILE ==========
+        audioInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) { selectedAudioFile=null; audioInfo.innerHTML='* Pilih file suara'; updateUITimeline(); return; }
+            selectedAudioFile = file;
+            const url = URL.createObjectURL(file);
+            const tempAudio = new Audio(url);
+            tempAudio.onloadedmetadata = () => {
+                audioDuration = tempAudio.duration;
+                audioTrimStart = 0;
+                audioTrimEnd = Math.min(videoDuration || audioDuration, audioDuration);
+                audioStartTime.value = 0;
+                audioEndTime.value = audioTrimEnd.toFixed(1);
+                audioInfo.innerHTML = `✅ Audio: ${file.name} (durasi ${audioDuration.toFixed(1)} detik)`;
+                updateUITimeline();
+                URL.revokeObjectURL(url);
+            };
+            previewAudioTestBtn.onclick = () => {
+                if(selectedAudioFile){
+                    const testUrl = URL.createObjectURL(selectedAudioFile);
+                    const testAud = new Audio(testUrl);
+                    testAud.currentTime = audioTrimStart;
+                    testAud.volume = previewVolume.value/100;
+                    testAud.play();
+                    setTimeout(()=> testAud.pause(), 4000);
+                } else alert("Pilih audio dulu");
+            };
+        });
+        
+        // ========== KAMERA (resolusi rendah, tidak terbalik) ==========
+        let cameraStream = null;
+        let cameraRecorder = null;
+        let cameraChunks = [];
+        let cameraActive = false;
+        const cameraPreview = document.getElementById('cameraPreview');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const recordCameraBtn = document.getElementById('recordCameraBtn');
+        const cameraRecordStatus = document.getElementById('cameraRecordStatus');
+        const cameraOutputArea = document.getElementById('cameraOutputArea');
+        const cameraRecordedVideo = document.getElementById('cameraRecordedVideo');
+        const downloadCameraVideo = document.getElementById('downloadCameraVideo');
+        
+        async function initLowResCamera() {
+            if(cameraStream) stopCameraTracks();
+            try {
+                const constraints = { video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "environment" } };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraStream = stream;
+                cameraPreview.srcObject = cameraStream;
+                cameraActive = true;
+                startCameraBtn.disabled = true;
+                stopCameraBtn.disabled = false;
+                recordCameraBtn.disabled = false;
+                cameraRecordStatus.innerHTML = "✅ Kamera aktif (tidak terbalik). Tekan Rekam untuk video 5 detik.";
+                cameraRecordStatus.className = "status success";
+            } catch(err) {
+                cameraRecordStatus.innerHTML = "❌ Gagal akses kamera: "+err.message;
+                cameraRecordStatus.className = "status error";
+            }
+        }
+        function stopCameraTracks() {
+            if(cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            cameraPreview.srcObject = null;
+            cameraActive = false;
+            startCameraBtn.disabled = false;
+            stopCameraBtn.disabled = true;
+            recordCameraBtn.disabled = true;
+            cameraRecordStatus.innerHTML = "Kamera dimatikan.";
+        }
+        startCameraBtn.onclick = initLowResCamera;
+        stopCameraBtn.onclick = stopCameraTracks;
+        
+        // Rekam video kamera 5 detik + stop otomatis
+        let cameraTimer = null;
+        recordCameraBtn.onclick = async () => {
+            if(!cameraStream || !cameraActive) { alert("Aktifkan kamera dulu"); return; }
+            cameraChunks = [];
+            const videoTrack = cameraStream.getVideoTracks()[0];
+            const videoOnlyStream = new MediaStream([videoTrack]);
+            cameraRecorder = new MediaRecorder(videoOnlyStream, { mimeType: 'video/webm' });
+            cameraRecorder.ondataavailable = (e) => { if(e.data.size>0) cameraChunks.push(e.data); };
+            cameraRecorder.onstop = () => {
+                const blob = new Blob(cameraChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                cameraRecordedVideo.src = url;
+                downloadCameraVideo.href = url;
+                downloadCameraVideo.download = `camera_video_${Date.now()}.webm`;
+                cameraOutputArea.style.display = "block";
+                cameraRecordStatus.innerHTML = "✅ Rekaman selesai (5 detik). Bisa disimpan.";
+                cameraRecordStatus.className = "status success";
+                if(cameraTimer) clearTimeout(cameraTimer);
+                recordCameraBtn.disabled = false;
+            };
+            cameraRecorder.start();
+            cameraRecordStatus.innerHTML = "🔴 MEREKAM (5 detik otomatis stop)...";
+            cameraRecordStatus.className = "status recording";
+            recordCameraBtn.disabled = true;
+            // stop otomatis setelah 5 detik
+            cameraTimer = setTimeout(() => {
+                if(cameraRecorder && cameraRecorder.state === 'recording') {
+                    cameraRecorder.stop();
+                }
+            }, 5000);
+        };
+        
+        // ========== PRODUKSI VIDEO GABUNG (VIDEO PILIH + AUDIO FILE + TEKS) ==========
+        async function produceVideo() {
+            if(!selectedVideoFile) { alert("Pilih video terlebih dahulu!"); return null; }
+            infoStatus.innerHTML = "🔄 Memproses video + suara file + teks...";
+            processBtn.disabled = true;
+            try {
+                const videoElem = document.createElement('video');
+                const videoUrl = URL.createObjectURL(selectedVideoFile);
+                videoElem.src = videoUrl;
+                videoElem.muted = true;
+                videoElem.playsInline = true;
+                await new Promise(r => videoElem.onloadedmetadata = r);
+                const w = videoElem.videoWidth, h = videoElem.videoHeight;
+                canvas.width = w; canvas.height = h;
+                const canvasStream = canvas.captureStream(30);
+                
+                // Audio dari file yang dipilih user
+                let audioStream = null, audioContext = null, audioElement = null;
+                const useAudio = (selectedAudioFile && audioTrimEnd > audioTrimStart && audioDuration > 0);
+                if(useAudio) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const audUrl = URL.createObjectURL(selectedAudioFile);
+                    audioElement = new Audio(audUrl);
+                    const dest = audioContext.createMediaStreamDestination();
+                    const source = audioContext.createMediaElementSource(audioElement);
+                    source.connect(dest);
+                    source.connect(audioContext.destination);
+                    audioStream = dest.stream;
+                }
+                const finalStream = new MediaStream();
+                canvasStream.getVideoTracks().forEach(t => finalStream.addTrack(t));
+                if(audioStream) audioStream.getAudioTracks().forEach(t => finalStream.addTrack(t));
+                const recorder = new MediaRecorder(finalStream, { mimeType: 'video/webm' });
+                let chunks = [];
+                recorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+                recorder.start(100);
+                
+                const teks = overlayText.value.trim();
+                let audioStarted = false;
+                const draw = () => {
+                    if(videoElem.paused || videoElem.ended) { if(!videoElem.ended) requestAnimationFrame(draw); return; }
+                    const waktu = videoElem.currentTime;
+                    ctx.drawImage(videoElem, 0, 0, w, h);
+                    if(teks && waktu >= textTrimStart && waktu <= textTrimEnd) {
+                        ctx.save();
+                        ctx.font = `bold ${Math.min(fontSize, h*0.15)}px "Segoe UI", system-ui`;
+                        ctx.fillStyle = textColor;
+                        ctx.textAlign = "center";
+                        ctx.shadowColor = "black"; ctx.shadowBlur = 6;
+                        let yPos = 55; if(textPosition === 'middle') yPos = h/2; else if(textPosition === 'bottom') yPos = h-55;
+                        ctx.strokeStyle = "black"; ctx.lineWidth = 3;
+                        ctx.strokeText(teks, w/2, yPos);
+                        ctx.fillText(teks, w/2, yPos);
+                        ctx.restore();
+                    }
+                    if(audioElement && useAudio) {
+                        if(waktu >= audioTrimStart && !audioStarted && audioElement.paused) {
+                            audioElement.currentTime = audioTrimStart;
+                            audioElement.play().catch(e=>console.warn);
+                            audioStarted = true;
+                        } else if(waktu >= audioTrimEnd && !audioElement.paused) {
+                            audioElement.pause();
+                        } else if(waktu < audioTrimStart && !audioElement.paused) {
+                            audioElement.pause();
+                            audioStarted = false;
+                        }
+                    }
+                    requestAnimationFrame(draw);
+                };
+                await videoElem.play();
+                draw();
+                if(audioContext && useAudio) await audioContext.resume();
+                videoElem.onended = () => {
+                    setTimeout(() => {
+                        if(recorder.state === 'recording') recorder.stop();
+                        if(audioElement) audioElement.pause();
+                    }, 200);
+                };
+                const result = await new Promise(resolve => { recorder.onstop = () => resolve({ url: URL.createObjectURL(new Blob(chunks,{type:'video/webm'})), blob: null }); });
+                videoElem.pause(); URL.revokeObjectURL(videoUrl);
+                if(audioContext) await audioContext.close();
+                if(audioElement) audioElement.pause();
+                return result;
+            } catch(err) {
+                console.error(err); infoStatus.innerHTML = "❌ Gagal: "+err.message; return null;
+            } finally { processBtn.disabled = false; }
+        }
+        
+        processBtn.onclick = async () => {
+            const hasil = await produceVideo();
+            if(hasil) {
+                outputVideo.src = hasil.url;
+                downloadLink.href = hasil.url;
+                downloadLink.download = "video_editor_final.webm";
+                outputArea.style.display = "block";
+                infoStatus.innerHTML = "✅ BERHASIL! Video + Suara File + Teks menyatu. Klik SIMPAN.";
+                outputArea.scrollIntoView({ behavior: "smooth" });
+            } else alert("Produksi gagal, cek file audio/video.");
+        };
+    })();
+</script>
+</body>
+</html>
